@@ -1,10 +1,17 @@
 let gameId = null;
 let currentState = null;
+let autoInterval = null;
+let autoRunning = false;
 
 const SUIT_SYMBOLS = {
     spades: '\u2660', hearts: '\u2665', diamonds: '\u2666', clubs: '\u2663'
 };
 const RED_SUITS = new Set(['hearts', 'diamonds']);
+
+function getGameIdFromUrl() {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('game_id');
+}
 
 async function api(endpoint, body = null, method = null) {
     const opts = { headers: { 'Content-Type': 'application/json' } };
@@ -25,6 +32,42 @@ function showLoading() {
 }
 function hideLoading() {
     document.getElementById('loading-overlay').classList.add('hidden');
+}
+
+async function initGame() {
+    gameId = getGameIdFromUrl();
+    if (!gameId) {
+        window.location.href = '/';
+        return;
+    }
+    const state = await api('/api/state?game_id=' + encodeURIComponent(gameId));
+    if (state.error) {
+        window.location.href = '/';
+        return;
+    }
+    currentState = state;
+    setupModeUI(state);
+    render(state);
+    if (state.phase === 'player') {
+        fetchRecommendation();
+    }
+}
+
+function setupModeUI(state) {
+    const isAuto = state.mode === 'auto';
+    const badge = document.getElementById('mode-badge');
+    badge.textContent = isAuto ? 'Auto' : 'Regular';
+    badge.className = 'mode-badge ' + (isAuto ? 'auto' : 'regular');
+
+    const regControls = document.getElementById('regular-controls');
+    const autoControls = document.getElementById('auto-controls');
+    if (isAuto) {
+        regControls.classList.add('hidden');
+        autoControls.classList.remove('hidden');
+    } else {
+        regControls.classList.remove('hidden');
+        autoControls.classList.add('hidden');
+    }
 }
 
 async function fetchRecommendation() {
@@ -53,51 +96,111 @@ function setRecLoading(loading) {
     }
 }
 
-async function startGame() {
-    showLoading();
-    const state = await api('/api/new_game', {}, 'POST');
-    gameId = state.game_id;
-    currentState = state;
-    render(state);
-    hideLoading();
-    fetchRecommendation();
-}
-
 async function newHand() {
-    if (!gameId) return startGame();
+    if (!gameId) return;
     showLoading();
     const state = await api('/api/new_hand', { game_id: gameId });
+    if (state.error) { hideLoading(); return; }
     currentState = state;
     render(state);
     hideLoading();
-    fetchRecommendation();
+    if (state.phase === 'player') {
+        fetchRecommendation();
+    }
 }
 
 async function resetShoe() {
-    if (!gameId) return startGame();
+    if (!gameId) return;
     showLoading();
     await api('/api/reset_shoe', { game_id: gameId });
     const state = await api('/api/new_hand', { game_id: gameId });
+    if (state.error) { hideLoading(); return; }
     currentState = state;
     render(state);
     hideLoading();
-    fetchRecommendation();
+    if (state.phase === 'player') {
+        fetchRecommendation();
+    }
 }
 
 async function doAction(action) {
     if (!gameId) return;
     showLoading();
     const state = await api('/api/action', { game_id: gameId, action: action });
-    if (state.error) {
-        console.error('Action error:', state.error);
-        hideLoading();
-        return;
-    }
+    if (state.error) { hideLoading(); return; }
     currentState = state;
     render(state);
     hideLoading();
     if (state.phase === 'player') {
         fetchRecommendation();
+    }
+}
+
+async function autoStart() {
+    if (!gameId) return;
+    await api('/api/auto_control', { game_id: gameId, control: 'start' });
+    autoRunning = true;
+    updateAutoButtons();
+    const delay = (currentState && currentState.autoplay && currentState.autoplay.delay_ms) || 600;
+    autoInterval = setInterval(autoTick, delay);
+}
+
+function autoPause() {
+    autoRunning = false;
+    if (autoInterval) { clearInterval(autoInterval); autoInterval = null; }
+    if (gameId) api('/api/auto_control', { game_id: gameId, control: 'pause' });
+    updateAutoButtons();
+}
+
+async function autoStep() {
+    if (!gameId) return;
+    if (!autoRunning) {
+        await api('/api/auto_control', { game_id: gameId, control: 'start' });
+    }
+    const state = await api('/api/auto_step', { game_id: gameId });
+    if (state.error) return;
+    currentState = state;
+    render(state);
+    checkAutoStop(state);
+}
+
+function autoStop() {
+    autoRunning = false;
+    if (autoInterval) { clearInterval(autoInterval); autoInterval = null; }
+    if (gameId) api('/api/auto_control', { game_id: gameId, control: 'stop' });
+    updateAutoButtons();
+}
+
+async function autoTick() {
+    if (!gameId || !autoRunning) return;
+    try {
+        const state = await api('/api/auto_step', { game_id: gameId });
+        if (state.error) { autoPause(); return; }
+        currentState = state;
+        render(state);
+        checkAutoStop(state);
+    } catch (e) {
+        console.error('Auto tick error:', e);
+        autoPause();
+    }
+}
+
+function checkAutoStop(state) {
+    if (state.autoplay && (state.autoplay.session_stopped || !state.autoplay.active)) {
+        autoRunning = false;
+        if (autoInterval) { clearInterval(autoInterval); autoInterval = null; }
+        updateAutoButtons();
+    }
+}
+
+function updateAutoButtons() {
+    const startBtn = document.getElementById('btn-auto-start');
+    const pauseBtn = document.getElementById('btn-auto-pause');
+    const stopBtn = document.getElementById('btn-auto-stop');
+    if (startBtn) {
+        startBtn.disabled = autoRunning;
+        pauseBtn.disabled = !autoRunning;
+        stopBtn.disabled = !autoRunning && !(currentState && currentState.autoplay && !currentState.autoplay.session_stopped);
     }
 }
 
@@ -126,25 +229,32 @@ function render(state) {
     renderOdds(state);
     renderCount(state);
     renderOutcome(state);
+    renderStatusBar(state);
+    renderStats(state);
+    renderStoppedBanner(state);
 }
 
 function renderDealer(state) {
     const container = document.getElementById('dealer-cards');
     container.innerHTML = '';
+    if (!state.dealer || !state.dealer.cards) return;
     for (const card of state.dealer.cards) {
         container.appendChild(createCardEl(card));
     }
     const totalEl = document.getElementById('dealer-total');
     if (state.dealer.total_final !== null && state.dealer.total_final !== undefined) {
         totalEl.textContent = 'Total: ' + state.dealer.total_final;
-    } else {
+    } else if (state.dealer.total_visible) {
         totalEl.textContent = 'Showing: ' + state.dealer.total_visible;
+    } else {
+        totalEl.textContent = '';
     }
 }
 
 function renderPlayerHands(state) {
     const container = document.getElementById('player-hands');
     container.innerHTML = '';
+    if (!state.player_hands) return;
     const hands = state.player_hands;
     const multiHand = hands.length > 1;
 
@@ -164,6 +274,9 @@ function renderPlayerHands(state) {
             extras += '<span class="status-badge bust">BUST</span>';
         } else if (h.status === 'stood' && state.phase === 'player') {
             extras += '<span class="status-badge stood">STOOD</span>';
+        }
+        if (h.stake && multiHand) {
+            extras += '<span class="stake-badge">$' + h.stake + '</span>';
         }
         label.innerHTML = labelText + ' ' + extras;
         if (labelText || extras) group.appendChild(label);
@@ -187,6 +300,7 @@ function renderPlayerHands(state) {
 }
 
 function renderActions(state) {
+    if (!state.actions_legal) return;
     const actions = state.actions_legal;
     const reasons = state.reasons || {};
     const phase = state.phase;
@@ -195,6 +309,8 @@ function renderActions(state) {
     const btnStand = document.getElementById('btn-stand');
     const btnDouble = document.getElementById('btn-double');
     const btnSplit = document.getElementById('btn-split');
+
+    if (!btnHit) return;
 
     if (phase !== 'player') {
         btnHit.disabled = true;
@@ -221,6 +337,9 @@ function renderRecommendation(state) {
     if (!state.recommendation) {
         if (state.phase === 'complete') {
             recAction.textContent = 'Hand Complete';
+            recAction.className = 'rec-action no-rec';
+        } else if (state.phase === 'idle') {
+            recAction.textContent = 'Deal a Hand';
             recAction.className = 'rec-action no-rec';
         }
         recExpl.textContent = '';
@@ -267,11 +386,16 @@ function renderOdds(state) {
 }
 
 function renderCount(state) {
+    if (!state.count) return;
     const rc = state.count.running;
     document.getElementById('running-count').textContent = (rc >= 0 ? '+' : '') + rc;
     document.getElementById('true-count').textContent =
         (state.count.true >= 0 ? '+' : '') + state.count.true.toFixed(1);
     document.getElementById('decks-remaining').textContent = state.count.decks_remaining.toFixed(2);
+    const simsEl = document.getElementById('sims-count');
+    if (simsEl && state.config) {
+        simsEl.textContent = state.config.n_sims.toLocaleString();
+    }
 }
 
 function renderOutcome(state) {
@@ -288,16 +412,16 @@ function renderOutcome(state) {
     for (const r of results) {
         totalNet += r.net;
         if (results.length > 1) {
-            parts.push('Hand (' + r.player_total + ' vs ' + r.dealer_total + '): ' + r.result + ' ' + (r.net >= 0 ? '+' : '') + r.net);
+            parts.push('Hand (' + r.player_total + ' vs ' + r.dealer_total + '): ' + r.result + ' ' + (r.net >= 0 ? '+' : '') + '$' + Math.abs(r.net));
         }
     }
 
     let text = '';
     if (results.length === 1) {
         const r = results[0];
-        text = r.result + ' \u2014 Your ' + r.player_total + ' vs Dealer ' + r.dealer_total + ' (' + (r.net >= 0 ? '+' : '') + r.net + ' units)';
+        text = r.result + ' \u2014 Your ' + r.player_total + ' vs Dealer ' + r.dealer_total + ' (' + (totalNet >= 0 ? '+' : '-') + '$' + Math.abs(totalNet) + ')';
     } else {
-        text = parts.join(' \u00B7 ') + ' \u2014 Net: ' + (totalNet >= 0 ? '+' : '') + totalNet + ' units';
+        text = parts.join(' \u00B7 ') + ' \u2014 Net: ' + (totalNet >= 0 ? '+' : '-') + '$' + Math.abs(totalNet);
     }
 
     banner.textContent = text;
@@ -314,4 +438,50 @@ function renderOutcome(state) {
     }
 }
 
-startGame();
+function fmtDollars(n) {
+    const sign = n < 0 ? '-' : (n > 0 ? '+' : '');
+    return sign + '$' + Math.abs(n).toLocaleString();
+}
+
+function renderStatusBar(state) {
+    if (!state.bankroll) return;
+    const br = state.bankroll;
+    document.getElementById('bankroll-val').textContent = '$' + br.current.toLocaleString();
+    document.getElementById('current-bet-val').textContent = '$' + br.current_bet.toLocaleString();
+
+    const brEl = document.getElementById('bankroll-val');
+    const net = state.stats.net_profit;
+    if (net > 0) brEl.className = 'status-value bankroll-value positive';
+    else if (net < 0) brEl.className = 'status-value bankroll-value negative';
+    else brEl.className = 'status-value bankroll-value';
+
+    document.getElementById('hand-number').textContent = state.stats.hands_played;
+    const netEl = document.getElementById('net-profit');
+    netEl.textContent = fmtDollars(state.stats.net_profit);
+    netEl.className = 'status-value ' + (net > 0 ? 'positive' : net < 0 ? 'negative' : '');
+
+    const roiEl = document.getElementById('roi-val');
+    roiEl.textContent = state.stats.roi.toFixed(2) + '%';
+    roiEl.className = 'status-value ' + (state.stats.roi > 0 ? 'positive' : state.stats.roi < 0 ? 'negative' : '');
+}
+
+function renderStats(state) {
+    if (!state.stats) return;
+    document.getElementById('stat-hands').textContent = state.stats.hands_played;
+    document.getElementById('stat-wins').textContent = state.stats.wins;
+    document.getElementById('stat-losses').textContent = state.stats.losses;
+    document.getElementById('stat-pushes').textContent = state.stats.pushes;
+}
+
+function renderStoppedBanner(state) {
+    const banner = document.getElementById('stopped-banner');
+    if (!banner) return;
+    if (state.autoplay && state.autoplay.session_stopped && state.autoplay.stop_reason) {
+        banner.textContent = 'Session ended: ' + state.autoplay.stop_reason;
+        banner.classList.remove('hidden');
+    } else {
+        banner.classList.add('hidden');
+    }
+}
+
+initGame();

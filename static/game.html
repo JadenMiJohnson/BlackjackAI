@@ -3,18 +3,48 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Blackjack Copilot</title>
+    <title>Blackjack Copilot - Game</title>
     <link rel="stylesheet" href="/static/styles.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body>
     <header>
         <div class="header-inner">
+            <a href="/" class="header-home" title="Back to Home">&larr;</a>
             <h1>Blackjack Copilot</h1>
             <span class="subtitle">6-Deck Shoe &middot; Dealer Hits Soft 17</span>
         </div>
     </header>
+
+    <div class="status-bar">
+        <div class="status-bar-inner">
+            <div class="status-item">
+                <span class="status-label">Mode</span>
+                <span id="mode-badge" class="mode-badge regular">Regular</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Bankroll</span>
+                <span id="bankroll-val" class="status-value bankroll-value">$1,000</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Bet</span>
+                <span id="current-bet-val" class="status-value">$10</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Hand #</span>
+                <span id="hand-number" class="status-value">0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Net</span>
+                <span id="net-profit" class="status-value">$0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">ROI</span>
+                <span id="roi-val" class="status-value">0.00%</span>
+            </div>
+        </div>
+    </div>
 
     <main>
         <div class="table-area">
@@ -35,17 +65,25 @@
         </div>
 
         <div class="controls-area">
-            <div class="action-buttons">
+            <div id="regular-controls" class="action-buttons">
                 <button id="btn-hit" onclick="doAction('hit')">Hit</button>
                 <button id="btn-stand" onclick="doAction('stand')">Stand</button>
                 <button id="btn-double" onclick="doAction('double')">Double</button>
                 <button id="btn-split" onclick="doAction('split')">Split</button>
+            </div>
+            <div id="auto-controls" class="action-buttons hidden">
+                <button id="btn-auto-start" class="auto-btn start" onclick="autoStart()">Start Auto</button>
+                <button id="btn-auto-pause" class="auto-btn pause" onclick="autoPause()" disabled>Pause</button>
+                <button id="btn-auto-step" class="auto-btn step" onclick="autoStep()">Step</button>
+                <button id="btn-auto-stop" class="auto-btn stop-btn" onclick="autoStop()" disabled>Stop</button>
             </div>
             <div class="game-buttons">
                 <button class="secondary" onclick="newHand()">New Hand</button>
                 <button class="secondary" onclick="resetShoe()">Reset Shoe</button>
             </div>
         </div>
+
+        <div id="stopped-banner" class="stopped-banner hidden"></div>
 
         <div class="panels-area">
             <div class="panel recommendation-panel">
@@ -85,6 +123,34 @@
                     <div class="count-item">
                         <span class="count-label">Decks Left</span>
                         <span id="decks-remaining" class="count-value">6.00</span>
+                    </div>
+                    <div class="count-item sims-count">
+                        <span class="count-label">Sims/Decision</span>
+                        <span id="sims-count" class="count-value count-value-sm">5,000</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="panels-area stats-row">
+            <div class="panel stats-panel">
+                <div class="panel-title">Session Stats</div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <span class="stat-label">Hands Played</span>
+                        <span id="stat-hands" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item win-stat">
+                        <span class="stat-label">Wins</span>
+                        <span id="stat-wins" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item loss-stat">
+                        <span class="stat-label">Losses</span>
+                        <span id="stat-losses" class="stat-value">0</span>
+                    </div>
+                    <div class="stat-item push-stat">
+                        <span class="stat-label">Pushes</span>
+                        <span id="stat-pushes" class="stat-value">0</span>
                     </div>
                 </div>
             </div>

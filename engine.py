@@ -1,12 +1,12 @@
 """
 Blackjack Copilot Engine — Game logic, Monte Carlo simulation, and state management.
 
-Extracted from the CLI version for use by the FastAPI web backend.
-All blackjack rules, simulation, and state are managed here.
+Rules: 6-deck shoe, dealer hits soft 17 (H17), split up to 3 times,
+split aces get one card only, double after split allowed, no resplit aces.
+Betting: stake-at-risk model (deduct when placed, return on win/push).
 """
 
 import random
-import time
 import uuid
 
 NUM_DECKS = 6
@@ -17,7 +17,7 @@ DOUBLE_AFTER_SPLIT = True
 RESPLIT_ACES = False
 DOUBLE_ONLY_ON_FIRST_TWO = True
 
-NUM_SIMS = 5_000
+DEFAULT_SIMS = 5_000
 SEED_BASE = 42
 
 RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
@@ -31,7 +31,6 @@ HILO = {
     '7': 0, '8': 0, '9': 0,
     '10': -1, 'J': -1, 'Q': -1, 'K': -1, 'A': -1
 }
-SUIT_SYMBOLS = {'spades': '♠', 'hearts': '♥', 'diamonds': '♦', 'clubs': '♣'}
 
 
 class Shoe:
@@ -321,7 +320,7 @@ def sim_split(shoe, player_ranks, dealer_up_rank, dealer_hole, rng):
 
 
 class OddsEngine:
-    def __init__(self, n_sims=NUM_SIMS, seed=SEED_BASE):
+    def __init__(self, n_sims=DEFAULT_SIMS, seed=SEED_BASE):
         self.n_sims = n_sims
         self.seed = seed
 
@@ -424,6 +423,7 @@ class HandState:
         self.is_split_hand = False
         self.split_from_aces = False
         self.split_depth = 0
+        self.stake = 0
 
     def ranks(self):
         return [c['rank'] for c in self.cards]
@@ -477,15 +477,36 @@ class HandState:
             'can_stand': self.can_stand(),
             'can_double': self.can_double(),
             'can_split': self.can_split(),
+            'stake': self.stake,
         }
 
 
+def compute_bet(true_count, min_bet, max_units):
+    tc = true_count
+    if tc <= 0:
+        units = 1
+    elif tc < 1:
+        units = 1
+    elif tc < 2:
+        units = 2
+    elif tc < 3:
+        units = 4
+    else:
+        units = 6
+    units = min(units, max_units)
+    return min_bet * units
+
+
 class GameState:
-    def __init__(self):
+    def __init__(self, mode='regular', starting_bankroll=1000, min_bet=10,
+                 max_units=8, n_sims=DEFAULT_SIMS, delay_ms=600,
+                 stop_after_hands=50, stop_on_bankrupt=True):
         self.game_id = str(uuid.uuid4())
+        self.mode = mode
         self.shoe = Shoe()
         self.rng = random.Random()
-        self.engine = OddsEngine(n_sims=NUM_SIMS, seed=SEED_BASE)
+        self.engine = OddsEngine(n_sims=n_sims, seed=SEED_BASE)
+        self.n_sims = n_sims
         self.dealer_cards = []
         self.dealer_hole_hidden = True
         self.player_hands = []
@@ -493,16 +514,61 @@ class GameState:
         self.phase = 'idle'
         self.outcomes = []
         self.next_hand_id = 0
+        self._hole_card_rank = None
+
+        self.starting_bankroll = starting_bankroll
+        self.bankroll = starting_bankroll
+        self.min_bet = min_bet
+        self.max_units = max_units
+        self.current_bet = 0
+        self.delay_ms = delay_ms
+        self.stop_after_hands = stop_after_hands
+        self.stop_on_bankrupt = stop_on_bankrupt
+
+        self.hands_played = 0
+        self.wins = 0
+        self.losses = 0
+        self.pushes = 0
+
+        self.autoplay_active = False
+        self.session_stopped = False
+        self.stop_reason = None
 
     def _draw_card(self):
         rank, suit = self.shoe.draw_with_suit(self.rng)
         return {'rank': rank, 'suit': suit}
 
-    def _draw_card_hidden(self):
-        rank, suit = self.shoe.draw_with_suit(self.rng)
-        return {'rank': rank, 'suit': suit, 'hidden': True}
-
     def deal_new_hand(self):
+        if self.session_stopped:
+            return self.get_state()
+
+        if self.stop_after_hands and self.hands_played >= self.stop_after_hands:
+            self.session_stopped = True
+            self.stop_reason = f'Reached {self.stop_after_hands} hands'
+            self.autoplay_active = False
+            return self.get_state()
+
+        if self.stop_on_bankrupt and self.bankroll <= 0:
+            self.session_stopped = True
+            self.stop_reason = 'Bankroll depleted'
+            self.autoplay_active = False
+            return self.get_state()
+
+        if self.shoe.cards_remaining < 20:
+            self.shoe = Shoe()
+
+        if self.bankroll < self.min_bet:
+            self.session_stopped = True
+            self.stop_reason = 'Bankroll too low for minimum bet'
+            self.autoplay_active = False
+            return self.get_state()
+
+        self.current_bet = compute_bet(self.shoe.true_count, self.min_bet, self.max_units)
+        if self.current_bet > self.bankroll:
+            self.current_bet = self.bankroll
+
+        self.bankroll -= self.current_bet
+
         self.dealer_cards = []
         self.player_hands = []
         self.active_hand_index = 0
@@ -512,12 +578,10 @@ class GameState:
         self.next_hand_id = 0
 
         d1 = self._draw_card()
-
         d2_rank, d2_suit = self.shoe.draw_with_suit(self.rng)
         self.shoe.running_count -= HILO[d2_rank]
         self._hole_card_rank = d2_rank
         d2 = {'rank': d2_rank, 'suit': d2_suit, 'hidden': True}
-
         self.dealer_cards = [d1, d2]
 
         hand = HandState(self.next_hand_id)
@@ -525,6 +589,7 @@ class GameState:
         c1 = self._draw_card()
         c2 = self._draw_card()
         hand.cards = [c1, c2]
+        hand.stake = self.current_bet
         self.player_hands = [hand]
 
         t, _ = hand.total()
@@ -540,6 +605,13 @@ class GameState:
         self.dealer_cards = []
         self.player_hands = []
         self.outcomes = []
+        self.hands_played = 0
+        self.wins = 0
+        self.losses = 0
+        self.pushes = 0
+        self.bankroll = self.starting_bankroll
+        self.session_stopped = False
+        self.stop_reason = None
         return self.get_state()
 
     def apply_action(self, action):
@@ -564,10 +636,14 @@ class GameState:
             hand.status = 'stood'
             self._advance_hand()
 
-        elif action == 'double' and hand.can_double():
+        elif action == 'double' and hand.can_double() and self.bankroll >= hand.stake:
+            extra = hand.stake
+            self.bankroll -= extra
+            hand.stake += extra
+            hand.doubled = True
+
             card = self._draw_card()
             hand.cards.append(card)
-            hand.doubled = True
             t, _ = hand.total()
             if t > 21:
                 hand.status = 'bust'
@@ -575,17 +651,21 @@ class GameState:
                 hand.status = 'stood'
             self._advance_hand()
 
-        elif action == 'split' and hand.can_split():
+        elif action == 'split' and hand.can_split() and self.bankroll >= hand.stake:
             split_rank = hand.cards[0]['rank']
             is_aces = (split_rank == 'A')
             c1_old = hand.cards[0]
             c2_old = hand.cards[1]
+            original_stake = hand.stake
+
+            self.bankroll -= original_stake
 
             h1 = HandState(self.next_hand_id)
             self.next_hand_id += 1
             h1.is_split_hand = True
             h1.split_from_aces = is_aces
             h1.split_depth = hand.split_depth + 1
+            h1.stake = original_stake
             new_c1 = self._draw_card()
             h1.cards = [c1_old, new_c1]
 
@@ -594,6 +674,7 @@ class GameState:
             h2.is_split_hand = True
             h2.split_from_aces = is_aces
             h2.split_depth = hand.split_depth + 1
+            h2.stake = original_stake
             new_c2 = self._draw_card()
             h2.cards = [c2_old, new_c2]
 
@@ -627,7 +708,7 @@ class GameState:
         self.phase = 'complete'
         self.dealer_hole_hidden = False
 
-        if hasattr(self, '_hole_card_rank') and self._hole_card_rank:
+        if self._hole_card_rank:
             self.shoe.running_count += HILO[self._hole_card_rank]
             self._hole_card_rank = None
 
@@ -650,21 +731,34 @@ class GameState:
                 result = -1
             else:
                 result = compare_hands(pt, dt)
-            stake = 2 if h.doubled else 1
-            net = result * stake
+
             if result > 0:
                 label = 'WIN'
+                payout = h.stake * 2
+                self.wins += 1
             elif result == 0:
                 label = 'PUSH'
+                payout = h.stake
+                self.pushes += 1
             else:
                 label = 'LOSE'
+                payout = 0
+                self.losses += 1
+
+            self.bankroll += payout
+
+            net = payout - h.stake
             self.outcomes.append({
                 'hand_id': h.hand_id,
                 'player_total': pt,
                 'dealer_total': dt,
                 'result': label,
+                'stake': h.stake,
+                'payout': payout,
                 'net': net
             })
+
+        self.hands_played += 1
 
     def _get_recommendation(self):
         if self.phase != 'player':
@@ -676,10 +770,12 @@ class GameState:
         player_ranks = hand.ranks()
         dealer_up_rank = self.dealer_cards[0]['rank']
 
+        can_dbl = hand.can_double() and self.bankroll >= hand.stake
+        can_spl = hand.can_split() and self.bankroll >= hand.stake
         analysis = self.engine.full_analysis(
             self.shoe, player_ranks, dealer_up_rank,
-            can_double=hand.can_double(),
-            can_split=hand.can_split()
+            can_double=can_dbl,
+            can_split=can_spl
         )
 
         evs = {}
@@ -712,6 +808,39 @@ class GameState:
             'explanation': '; '.join(reasons)
         }
 
+    def auto_step(self):
+        if not self.autoplay_active:
+            return self.get_state()
+
+        if self.session_stopped:
+            self.autoplay_active = False
+            return self.get_state()
+
+        if self.phase == 'idle' or self.phase == 'complete':
+            return self.deal_new_hand()
+
+        if self.phase == 'player':
+            hand = self.player_hands[self.active_hand_index]
+            if hand.status != 'active':
+                self._advance_hand()
+                return self.get_state()
+
+            rec = self._get_recommendation()
+            if rec:
+                action = rec['action']
+                self.apply_action(action)
+                state = self.get_state()
+                state['recommendation'] = rec
+                return state
+            else:
+                action = basic_strategy_action(
+                    hand.ranks(), self.dealer_cards[0]['rank'],
+                    hand.can_double(), hand.can_split()
+                ).lower()
+                return self.apply_action(action)
+
+        return self.get_state()
+
     def get_state(self):
         dealer_out = []
         for i, c in enumerate(self.dealer_cards):
@@ -721,10 +850,12 @@ class GameState:
                 dealer_out.append({'rank': c['rank'], 'suit': c['suit'], 'hidden': False})
 
         visible_dealer = [c for c in dealer_out if not c['hidden']]
-        dt_visible, _ = hand_total_ranks([c['rank'] for c in visible_dealer])
+        dt_visible = 0
+        if visible_dealer:
+            dt_visible, _ = hand_total_ranks([c['rank'] for c in visible_dealer])
 
         dt_final = None
-        if not self.dealer_hole_hidden:
+        if not self.dealer_hole_hidden and self.dealer_cards:
             dt_final, _ = hand_total_ranks([c['rank'] for c in self.dealer_cards])
 
         hands_out = [h.to_dict() for h in self.player_hands]
@@ -737,23 +868,33 @@ class GameState:
             active_hand = self.active_hand_index
             actions_legal['hit'] = ah.can_hit()
             actions_legal['stand'] = ah.can_stand()
-            actions_legal['double'] = ah.can_double()
-            actions_legal['split'] = ah.can_split()
-            if not ah.can_double():
+            can_dbl = ah.can_double() and self.bankroll >= ah.stake
+            can_spl = ah.can_split() and self.bankroll >= ah.stake
+            actions_legal['double'] = can_dbl
+            actions_legal['split'] = can_spl
+            if not can_dbl:
                 if len(ah.cards) != 2:
                     reasons['double'] = 'Only on first two cards'
                 elif ah.is_split_hand and not DOUBLE_AFTER_SPLIT:
                     reasons['double'] = 'No double after split'
-            if not ah.can_split():
+                elif ah.can_double() and self.bankroll < ah.stake:
+                    reasons['double'] = 'Insufficient bankroll'
+            if not can_spl:
                 if len(ah.cards) != 2 or ah.cards[0]['rank'] != ah.cards[1]['rank']:
                     reasons['split'] = 'Need a pair to split'
                 elif ah.split_depth >= MAX_SPLITS:
                     reasons['split'] = f'Max {MAX_SPLITS} splits reached'
                 elif ah.split_from_aces and not RESPLIT_ACES:
                     reasons['split'] = 'Cannot resplit aces'
+                elif ah.can_split() and self.bankroll < ah.stake:
+                    reasons['split'] = 'Insufficient bankroll'
+
+        net_profit = self.bankroll - self.starting_bankroll
+        roi = (net_profit / self.starting_bankroll * 100) if self.starting_bankroll > 0 else 0
 
         return {
             'game_id': self.game_id,
+            'mode': self.mode,
             'phase': self.phase,
             'dealer': {
                 'cards': dealer_out,
@@ -771,8 +912,30 @@ class GameState:
                 'decks_remaining': round(self.shoe.decks_remaining, 2)
             },
             'outcome': self.outcomes if self.phase == 'complete' else None,
+            'bankroll': {
+                'current': self.bankroll,
+                'starting': self.starting_bankroll,
+                'current_bet': self.current_bet,
+                'min_bet': self.min_bet,
+                'max_units': self.max_units,
+            },
+            'stats': {
+                'hands_played': self.hands_played,
+                'wins': self.wins,
+                'losses': self.losses,
+                'pushes': self.pushes,
+                'net_profit': net_profit,
+                'roi': round(roi, 2),
+            },
+            'autoplay': {
+                'active': self.autoplay_active,
+                'delay_ms': self.delay_ms,
+                'session_stopped': self.session_stopped,
+                'stop_reason': self.stop_reason,
+            },
             'config': {
                 'decks': NUM_DECKS,
-                'dealer_h17': DEALER_HITS_SOFT_17
+                'dealer_h17': DEALER_HITS_SOFT_17,
+                'n_sims': self.n_sims,
             }
         }

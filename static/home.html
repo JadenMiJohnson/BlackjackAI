@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack Copilot</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="home-body">
+    <div class="home-container">
+        <div class="home-hero">
+            <div class="hero-card-deco">
+                <span class="deco-suit s1">&spades;</span>
+                <span class="deco-suit s2">&hearts;</span>
+                <span class="deco-suit s3">&diams;</span>
+                <span class="deco-suit s4">&clubs;</span>
+            </div>
+            <h1 class="home-title">Blackjack Copilot</h1>
+            <p class="home-subtitle">6-Deck Shoe &middot; Dealer Hits Soft 17 (H17) &middot; EV + Count-based decisions</p>
+        </div>
+
+        <div class="mode-cards">
+            <div class="mode-card selected" data-mode="regular" onclick="selectMode('regular')">
+                <div class="mode-icon">&#9998;</div>
+                <h2>Regular Mode</h2>
+                <p>Play yourself with real-time AI guidance. See recommended actions, EVs, and probabilities for every decision.</p>
+                <div class="mode-badge">Interactive</div>
+            </div>
+            <div class="mode-card" data-mode="auto" onclick="selectMode('auto')">
+                <div class="mode-icon">&#9881;</div>
+                <h2>Auto Play Mode</h2>
+                <p>Watch the AI play hands automatically using optimal EV-based strategy. Track bankroll and session performance.</p>
+                <div class="mode-badge">Autonomous</div>
+            </div>
+        </div>
+
+        <div class="settings-panel">
+            <div class="settings-header" onclick="toggleSettings()">
+                <h3>Session Settings</h3>
+                <span id="settings-toggle" class="settings-arrow">&#9660;</span>
+            </div>
+            <div id="settings-body" class="settings-body">
+                <div class="settings-grid">
+                    <div class="setting-group">
+                        <label for="starting-bankroll">Starting Bankroll ($)</label>
+                        <input type="number" id="starting-bankroll" value="1000" min="10" step="10">
+                    </div>
+                    <div class="setting-group">
+                        <label for="min-bet">Minimum Bet ($)</label>
+                        <input type="number" id="min-bet" value="10" min="1" step="1">
+                    </div>
+                    <div class="setting-group">
+                        <label for="max-units">Bet Spread Cap (units)</label>
+                        <input type="number" id="max-units" value="8" min="1" max="20" step="1">
+                        <span class="setting-hint">Max multiplier on min bet</span>
+                    </div>
+                    <div class="setting-group">
+                        <label for="n-sims">Simulations per Decision</label>
+                        <input type="number" id="n-sims" value="5000" min="500" max="50000" step="500">
+                        <span class="setting-hint">Higher = more accurate but slower</span>
+                    </div>
+                    <div class="setting-group auto-only">
+                        <label for="delay-ms">Autoplay Speed (ms)</label>
+                        <input type="number" id="delay-ms" value="600" min="100" max="5000" step="100">
+                        <span class="setting-hint">Delay between auto actions</span>
+                    </div>
+                    <div class="setting-group">
+                        <label for="stop-hands">Stop After X Hands</label>
+                        <input type="number" id="stop-hands" value="50" min="0" step="1">
+                        <span class="setting-hint">0 = no limit</span>
+                    </div>
+                    <div class="setting-group checkbox-group">
+                        <label>
+                            <input type="checkbox" id="stop-bankrupt" checked>
+                            Stop if bankroll hits zero
+                        </label>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <button class="start-btn" onclick="startSession()">
+            <span class="start-btn-text">Start Session</span>
+            <span class="start-btn-arrow">&rarr;</span>
+        </button>
+
+        <div class="home-footer">
+            <p>Hi-Lo card counting &middot; Monte Carlo EV simulation &middot; Dynamic bet sizing</p>
+        </div>
+    </div>
+
+    <script>
+        let selectedMode = 'regular';
+
+        function selectMode(mode) {
+            selectedMode = mode;
+            document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('selected'));
+            document.querySelector('[data-mode="' + mode + '"]').classList.add('selected');
+            document.querySelectorAll('.auto-only').forEach(el => {
+                el.style.display = mode === 'auto' ? '' : 'none';
+            });
+        }
+
+        function toggleSettings() {
+            const body = document.getElementById('settings-body');
+            const arrow = document.getElementById('settings-toggle');
+            body.classList.toggle('collapsed');
+            arrow.classList.toggle('collapsed');
+        }
+
+        async function startSession() {
+            const settings = {
+                mode: selectedMode,
+                starting_bankroll: parseInt(document.getElementById('starting-bankroll').value) || 1000,
+                min_bet: parseInt(document.getElementById('min-bet').value) || 10,
+                max_units: parseInt(document.getElementById('max-units').value) || 8,
+                n_sims: parseInt(document.getElementById('n-sims').value) || 5000,
+                delay_ms: parseInt(document.getElementById('delay-ms').value) || 600,
+                stop_after_hands: parseInt(document.getElementById('stop-hands').value) || 0,
+                stop_on_bankrupt: document.getElementById('stop-bankrupt').checked,
+            };
+            const res = await fetch('/api/start_session', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(settings)
+            });
+            const state = await res.json();
+            window.location.href = '/game?game_id=' + state.game_id;
+        }
+
+        selectMode('regular');
+    </script>
+</body>
+</html>

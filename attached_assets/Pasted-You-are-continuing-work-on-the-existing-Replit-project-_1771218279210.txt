@@ -1,0 +1,178 @@
+You are continuing work on the existing Replit project “Blackjack Copilot” that already has:
+- A working web UI that renders cards and shows action buttons (Hit/Stand/Double/Split)
+- Backend APIs to create a game, deal a hand, take actions, and return a state JSON
+- 6-deck shoe (finite), dealer hits soft 17 (H17)
+- Hi-Lo running/true count + decks remaining
+- Monte Carlo odds + EV per legal action, and a recommendation panel
+
+NOW YOUR TASK
+Add a real product-style HOME PAGE and implement TWO MODES:
+1) Regular Mode (human clicks actions)
+2) Auto Play Mode (AI plays hands automatically)
+
+Also add:
+- Bankroll + bet sizing (dynamic with true count)
+- Session stats (hands played, net, ROI)
+- Clean navigation from Home -> Game
+
+DO NOT BREAK EXISTING FEATURES. Extend them.
+
+USER EXPERIENCE REQUIREMENTS
+
+A) HOME PAGE (Landing)
+Route: GET /
+A polished, modern landing page (not plain text) with:
+- Title: “Blackjack Copilot”
+- Subtitle: “6-Deck Shoe • Dealer Hits Soft 17 (H17) • EV + Count-based decisions”
+- Two big mode cards/buttons:
+  - “Regular Mode” (play yourself with AI guidance)
+  - “Auto Play Mode” (AI plays automatically)
+- Settings panel (with sensible defaults):
+  - Starting bankroll (default 1000)
+  - Min bet (default 10)
+  - Bet spread cap in “units” (default 8 units max)
+  - Simulations per decision (default 25000 for web responsiveness)
+  - Autoplay speed (ms delay between actions; default 600)
+  - Stop conditions:
+    - Stop after X hands (default 50, allow blank for infinite)
+    - Stop if bankroll <= 0 (default enabled)
+- A “Start Session” button that:
+  - Calls POST /api/start_session with selected settings
+  - Redirects to /game?game_id=...
+
+B) GAME PAGE
+Route: GET /game
+Must show:
+- Dealer cards row (with facedown hole card until reveal)
+- Player cards and multiple hands if split, with a highlight for active hand
+- Action buttons:
+  - Regular mode: user clicks Hit/Stand/Double/Split as before
+  - Auto mode: show Start Auto, Pause, Step, Stop buttons
+- A top status bar:
+  - Mode badge (Regular/Auto)
+  - Bankroll
+  - Current bet
+  - Hand number
+  - Session net + ROI
+- Panels (keep what exists):
+  - Recommendation panel (best action + short numeric “why”)
+  - Action analysis table (W/P/L + EV for each legal action)
+  - Card counting panel (running, true, decks remaining)
+- Controls:
+  - New Hand (keeps shoe)
+  - Reset Shoe (resets shoe + count + stats to defaults for that session)
+
+CORE FUNCTIONAL REQUIREMENTS
+
+1) AUTONOMOUS PLAY
+Add server-supported autoplay:
+- In Auto mode, the AI should automatically play the active hand(s) by repeatedly choosing the highest-EV LEGAL action.
+- It must correctly handle:
+  - Split hands (play Hand 1 then Hand 2, etc.)
+  - Double (one card then stand on that hand; stake doubled)
+  - Dealer reveal + H17 dealer play after all player hands complete
+- The UI must visibly update after each action (card appears, active hand highlight moves, etc.)
+
+Implement this as a STEP endpoint so the frontend can animate:
+- POST /api/auto_step with {game_id}
+  - Performs exactly ONE AI decision/action (or dealer step if needed)
+  - Returns updated state
+- Frontend runs a timer loop (setInterval) when “Start Auto” is pressed:
+  - Calls /api/auto_step every delay_ms
+  - Re-renders each time
+- Pause stops the loop; Step calls /api/auto_step once; Stop ends autoplay (no more calls).
+
+2) BANKROLL + DYNAMIC BET SIZING
+Add bankroll and betting to the state and settlement logic.
+- On starting session, set bankroll to starting value.
+- Before each new hand is dealt, compute recommended bet using true count:
+  - Use a simple ramp (units):
+    - TC <= 0 => 1 unit
+    - TC 1 => 2 units
+    - TC 2 => 4 units
+    - TC 3+ => 6 units
+  - Cap units at max_units from settings (default 8)
+  - bet = min_bet * units
+  - bet must not exceed bankroll (if bankroll smaller, bet = bankroll or minimum allowed, but be consistent and document)
+- Splits:
+  - Splitting requires placing an additional bet equal to the original bet for the new hand (deduct from bankroll at split time).
+- Doubles:
+  - Doubling requires placing an additional bet equal to the hand’s current stake (deduct at double time).
+- Settlement:
+  - For each hand, apply outcome using that hand’s stake:
+    - win: bankroll += stake
+    - push: bankroll += 0
+    - lose: bankroll -= 0 (if you already deducted stake up front) OR bankroll -= stake (if not deducted up front)
+  Choose ONE consistent accounting model:
+    Preferred: “stake-at-risk” model:
+      - Deduct stake from bankroll when bet is placed
+      - On win: bankroll += 2*stake (return stake + profit)
+      - On push: bankroll += stake (return stake)
+      - On loss: bankroll += 0
+  Implement correctly for split and double.
+- Display bankroll + current bet prominently.
+
+3) SESSION STATS
+Track and display:
+- hands_played
+- wins / losses / pushes (per-hand counts)
+- net_profit (bankroll - starting_bankroll)
+- ROI = net_profit / starting_bankroll
+Update after each fully settled round.
+
+4) GUIDANCE SYSTEM + REAL-TIME TRACKING (keep and extend)
+Continue showing:
+- EV and W/P/L probabilities per action
+- Recommendation and “why” text using computed values
+- Running/true count and decks remaining
+If you reduce sims for speed, keep it configurable and show the current sim count in UI.
+
+BACKEND REQUIREMENTS
+- Use Python 3 and keep the existing backend framework (FastAPI preferred; Flask acceptable if already used).
+- Do NOT implement game logic in JavaScript.
+- Refactor cleanly:
+  - engine.py: shoe, hand rules, dealer H17, action application, settlement, count
+  - odds_engine.py (optional): Monte Carlo EV/probs
+  - server main.py: API routes + serving static files/templates
+- Game state must be stored server-side keyed by game_id.
+- Add endpoint:
+  - POST /api/start_session
+    body: {mode, starting_bankroll, min_bet, max_units, sims, delay_ms, stop_after_hands, stop_on_bankrupt}
+    returns: {game_id, state}
+  - POST /api/auto_step
+    body: {game_id}
+    returns: {state}
+- Ensure all endpoints return the updated state JSON needed by UI.
+
+FRONTEND REQUIREMENTS
+- Create a real landing page UI:
+  - Use Bootstrap 5 CDN OR Tailwind CDN (choose one and be consistent)
+  - Use clean cards, spacing, shadows, and a “felt” background option (dark green)
+- Add routing:
+  - / (home)
+  - /game (game UI)
+- app.js:
+  - handle mode selection and session creation
+  - handle autoplay loop with delay_ms
+  - render bankroll/bet/stats
+  - render disabled reasons for illegal actions
+- Keep everything responsive and polished.
+
+DELIVERABLES
+- Update or create necessary files:
+  - main.py (server)
+  - engine.py (logic)
+  - templates/index.html (home) and templates/game.html (or static equivalents)
+  - static/app.js
+  - static/styles.css
+- Provide complete working code for all edited/new files.
+- Ensure it runs on Replit with one click.
+- Include short run instructions and document the rule assumptions (6 decks, H17, split/double rules, betting model).
+
+QUALITY BAR
+The project should feel like a real demo product:
+- Home page -> Start session -> Game
+- Regular mode is interactive and helpful
+- Auto mode visibly plays hands by itself and updates stats/bankroll
+- Card count and EV/probabilities update continuously
+- No raw JSON shown to users
