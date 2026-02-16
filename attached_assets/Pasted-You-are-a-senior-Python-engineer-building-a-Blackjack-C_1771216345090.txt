@@ -1,0 +1,132 @@
+You are a senior Python engineer building a Blackjack “Copilot” app on Replit (Python 3, standard library only).
+
+USER EXPERIENCE GOAL
+Create an interactive CLI app that helps a user during a blackjack hand by showing:
+1) Recommendation: HIT / STAND / DOUBLE / SPLIT (when legal)
+2) A short “why” explanation based on computed numbers (bust risk, dealer bust chance, EV comparison)
+3) Win / Push / Lose probabilities for each available action (and EV for each)
+4) Card counting display: Running Count (Hi-Lo), Decks Remaining, True Count
+5) A clean loop that lets the user enter cards as the hand progresses (including splits and doubles)
+
+GAME RULES (Must follow exactly unless listed as “configurable”)
+- Shoe: 6 decks (312 cards total)
+- Dealer hits soft 17 (H17)
+- Player actions supported: HIT, STAND, DOUBLE, SPLIT
+- Aces count as 1 or 11; handle soft totals correctly
+- Dealer plays after player stands (or after each split hand finishes)
+- Outcome scoring base unit:
+  - Win = +1, Push = 0, Loss = -1
+  - Blackjack payout is NOT required for v1 (treat blackjack as a normal win at +1)
+- DOUBLE:
+  - Only allowed as the first decision on a hand (two-card hand) (configurable flag)
+  - After doubling, player draws exactly one card and then stands
+  - EV for double must reflect doubled stake: win=+2, push=0, loss=-2
+- SPLIT:
+  - Allowed only when the first two cards are a pair by rank (e.g., 8/8, K/K, A/A, 10/10)
+  - Splitting creates two hands; each hand gets one additional card before continuing play
+  - Default split rules (make these constants easy to change):
+    - max_splits = 3 (so up to 4 hands total)
+    - split_aces_one_card_only = True (if splitting Aces, each Ace gets exactly one card then stands)
+    - double_after_split = True
+    - resplit_aces = False
+  - EV for split is the sum of EVs across the resulting hands (each hand uses base stake +1 unless doubled)
+
+COUNTING (Hi-Lo)
+- 2–6: +1
+- 7–9: 0
+- 10/J/Q/K/A: -1
+Track and display:
+- running_count
+- cards_remaining
+- decks_remaining = cards_remaining / 52
+- true_count = running_count / max(decks_remaining, 0.25)
+
+ODDS + DECISION ENGINE (Keep math behind the scenes, show results simply)
+Given current player hand(s) + dealer up-card + shoe composition:
+Compute for each LEGAL action:
+- EV(action) and P(win), P(push), P(lose)
+- Additional helpful numbers for the explanation:
+  - P(bust | hit) for the current hand
+  - P(dealer bust) if player stands now
+
+Use Monte Carlo simulation conditioned on the current shoe state (finite shoe, no replacement):
+- Run at least N=50,000 simulations per decision point (configurable)
+- In each simulation:
+  - Copy the current shoe composition
+  - Randomly sample unknown cards from the shoe without replacement
+  - Resolve the hand outcome(s) according to rules and the chosen initial action
+  - For subsequent decisions after the initial action (e.g., after a HIT, or in each split hand), continue play using the SAME EV-based decision logic recursively with a smaller simulation budget (e.g., N/10) OR a simple policy fallback if recursion gets too slow.
+    - If using recursion: memoize states to speed up (hand total, soft flag, dealer up-card, remaining shoe hash/coarsened signature, split depth)
+    - If using fallback: document it and keep consistent (but prefer recursion + memoization)
+
+Action modeling details:
+- STAND: simulate dealer play under H17 rules; compare totals.
+- HIT: draw one card; if bust => loss; else continue decisions until stand/bust.
+- DOUBLE: draw one card then stand; payoff scaled by 2.
+- SPLIT: create two hands; for each hand, draw one card; then play each hand to completion.
+  - If split_aces_one_card_only and rank is Ace: do not allow further hits on those hands.
+  - Total EV for split = sum of EV outcomes across hands (including any doubles on those hands if allowed).
+
+Recommendation rule:
+- Recommend the legal action with the highest EV
+- Display a short explanation that references computed values (no vague text):
+  - EVs for all legal actions
+  - bust risk if hit
+  - dealer bust chance if stand
+  - show the EV gap between best and second-best choice
+
+CLI INPUT FLOW (Simple and friendly)
+- Start with a 6-deck shoe
+- Ask for dealer up-card (A,K,Q,J,10..2; accept lowercase; accept “T” for 10)
+- Ask for player starting two cards
+- Update shoe + count using all known cards entered (player cards + dealer up-card)
+- Print a “Copilot Summary” block:
+  - Dealer up-card
+  - Player hand(s)
+  - Running/True count and decks remaining
+  - Table of legal actions with P(win/push/lose) and EV
+  - Recommended action + why (short)
+- Then guide the user through playing:
+  - If user chooses HIT: prompt for next player card; update shoe/count; re-run copilot
+  - If user chooses STAND: proceed to dealer resolution; prompt user to enter dealer hole card and subsequent dealer hit cards as revealed; update count; finish
+  - If user chooses DOUBLE: prompt for the one drawn card; update; resolve dealer; finish
+  - If user chooses SPLIT:
+    - Automatically create two hands
+    - Prompt for the next card dealt to Hand 1, then Hand 2 (and for resplits if enabled)
+    - After each hand is ready, run copilot decisioning for that hand (respect split rules)
+    - Complete Hand 1 then Hand 2, then dealer plays once at the end (standard)
+- After hand ends, ask “New hand (keep shoe) / Reset shoe / Quit”
+
+ENGINEERING REQUIREMENTS (Python standard lib only)
+- Structure the code clearly:
+  - Shoe class:
+    - internal card counts dict (rank -> count)
+    - draw_random(), remove_known(rank), validate_available(rank)
+    - running_count update, decks_remaining, true_count
+  - Hand utilities:
+    - compute totals and soft flag
+    - detect pair for split legality
+  - Dealer policy:
+    - play_dealer_H17(shoe, dealer_cards)
+  - OddsEngine:
+    - simulate_action(state, action, n_sims, rng_seed)
+    - returns EV, P(win/push/lose), and helpful diagnostics
+    - memoization for speed
+  - CLI:
+    - robust parsing (A,K,Q,J,T/10,9..2)
+    - friendly errors if card not available in shoe
+- Performance:
+  - Use random.Random(seed) for reproducibility
+  - Print runtime per decision and seed used
+  - Keep it responsive on Replit (use smaller sims for recursion)
+
+DELIVERABLES
+1) main.py runnable on Replit
+2) Friendly startup “How to use”
+3) Comments documenting all assumptions and configurable rule flags (max_splits, double_after_split, etc.)
+
+IMPORTANT
+- Keep user-facing text concise and friendly
+- Keep math in the background; show only key numbers and the short explanation
+- Do not add surrender/insurance unless requested
+- Ensure: 6 decks, finite shoe sampling, and dealer hits soft 17 (H17)
