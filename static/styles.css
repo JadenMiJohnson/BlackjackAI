@@ -1,0 +1,432 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    background: #0d1117;
+    color: #e6edf3;
+    min-height: 100vh;
+}
+
+header {
+    background: linear-gradient(135deg, #1a472a 0%, #0d2818 100%);
+    border-bottom: 1px solid #238636;
+    padding: 12px 24px;
+}
+
+.header-inner {
+    max-width: 1100px;
+    margin: 0 auto;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+header h1 {
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: -0.02em;
+}
+
+.subtitle {
+    font-size: 0.8rem;
+    color: #7ee787;
+    font-weight: 500;
+}
+
+main {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 24px 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.table-area {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 12px;
+    padding: 24px;
+    position: relative;
+}
+
+.section-label {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8b949e;
+    font-weight: 600;
+    margin-bottom: 10px;
+}
+
+.cards-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-height: 100px;
+    align-items: flex-start;
+}
+
+.hand-total {
+    margin-top: 6px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: #c9d1d9;
+}
+
+.divider {
+    height: 1px;
+    background: #30363d;
+    margin: 16px 0;
+}
+
+.player-section {
+    min-height: 120px;
+}
+
+.player-hand-group {
+    margin-bottom: 16px;
+}
+
+.hand-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: #8b949e;
+    margin-bottom: 6px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.hand-label .active-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #58a6ff;
+    display: inline-block;
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+.hand-label .status-badge {
+    font-size: 0.65rem;
+    padding: 1px 6px;
+    border-radius: 4px;
+    font-weight: 600;
+}
+
+.status-badge.bust { background: #da3633; color: #fff; }
+.status-badge.stood { background: #388bfd; color: #fff; }
+.status-badge.won { background: #238636; color: #fff; }
+.status-badge.lost { background: #da3633; color: #fff; }
+.status-badge.push { background: #6e7681; color: #fff; }
+
+.card {
+    width: 68px;
+    height: 96px;
+    border-radius: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 1.2rem;
+    position: relative;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.4);
+    transition: transform 0.2s;
+}
+
+.card:hover {
+    transform: translateY(-4px);
+}
+
+.card.face-up {
+    background: #fff;
+    border: 1px solid #d0d7de;
+}
+
+.card.face-down {
+    background: linear-gradient(135deg, #1f6feb 0%, #0d419d 100%);
+    border: 1px solid #388bfd;
+}
+
+.card.face-down::after {
+    content: '?';
+    font-size: 1.8rem;
+    color: rgba(255,255,255,0.3);
+}
+
+.card .rank {
+    font-size: 1.1rem;
+    line-height: 1;
+}
+
+.card .suit {
+    font-size: 1.3rem;
+    line-height: 1;
+    margin-top: 2px;
+}
+
+.card.black .rank, .card.black .suit { color: #1b1f23; }
+.card.red .rank, .card.red .suit { color: #cf222e; }
+
+.card .corner-rank {
+    position: absolute;
+    top: 4px;
+    left: 5px;
+    font-size: 0.6rem;
+    line-height: 1;
+}
+
+.card .corner-suit {
+    position: absolute;
+    top: 14px;
+    left: 5px;
+    font-size: 0.55rem;
+    line-height: 1;
+}
+
+.outcome-banner {
+    text-align: center;
+    padding: 12px;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 1rem;
+    margin-top: 12px;
+}
+
+.outcome-banner.hidden { display: none; }
+
+.controls-area {
+    display: flex;
+    gap: 16px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.action-buttons {
+    display: flex;
+    gap: 10px;
+}
+
+.action-buttons button {
+    padding: 10px 24px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+#btn-hit {
+    background: #238636;
+    color: #fff;
+}
+#btn-hit:hover:not(:disabled) { background: #2ea043; }
+
+#btn-stand {
+    background: #1f6feb;
+    color: #fff;
+}
+#btn-stand:hover:not(:disabled) { background: #388bfd; }
+
+#btn-double {
+    background: #9b6700;
+    color: #fff;
+}
+#btn-double:hover:not(:disabled) { background: #bb8009; }
+
+#btn-split {
+    background: #8b5cf6;
+    color: #fff;
+}
+#btn-split:hover:not(:disabled) { background: #a78bfa; }
+
+.action-buttons button:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+}
+
+.game-buttons {
+    display: flex;
+    gap: 10px;
+    margin-left: auto;
+}
+
+.game-buttons button.secondary {
+    padding: 10px 20px;
+    font-size: 0.85rem;
+    font-weight: 500;
+    border: 1px solid #30363d;
+    border-radius: 8px;
+    background: #21262d;
+    color: #c9d1d9;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+}
+
+.game-buttons button.secondary:hover {
+    background: #30363d;
+    border-color: #8b949e;
+}
+
+.panels-area {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+}
+
+@media (max-width: 800px) {
+    .panels-area {
+        grid-template-columns: 1fr;
+    }
+    .controls-area {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    .game-buttons {
+        margin-left: 0;
+    }
+}
+
+.panel {
+    background: #161b22;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    padding: 16px;
+}
+
+.panel-title {
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: #8b949e;
+    font-weight: 600;
+    margin-bottom: 12px;
+}
+
+.rec-action {
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin-bottom: 8px;
+    min-height: 36px;
+}
+
+.rec-action.hit { color: #3fb950; }
+.rec-action.stand { color: #58a6ff; }
+.rec-action.double { color: #d29922; }
+.rec-action.split { color: #bc8cff; }
+
+.rec-explanation {
+    font-size: 0.8rem;
+    color: #8b949e;
+    line-height: 1.5;
+    min-height: 40px;
+}
+
+.rec-details {
+    margin-top: 8px;
+    font-size: 0.75rem;
+    color: #6e7681;
+}
+
+#odds-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.8rem;
+}
+
+#odds-table th {
+    text-align: left;
+    padding: 6px 8px;
+    border-bottom: 1px solid #30363d;
+    color: #8b949e;
+    font-weight: 500;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+}
+
+#odds-table td {
+    padding: 6px 8px;
+    border-bottom: 1px solid #21262d;
+    font-variant-numeric: tabular-nums;
+}
+
+#odds-table tr.best td {
+    color: #3fb950;
+    font-weight: 600;
+}
+
+.count-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.count-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.count-label {
+    font-size: 0.8rem;
+    color: #8b949e;
+}
+
+.count-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+}
+
+.loading-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(13,17,23,0.7);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: 100;
+}
+
+.loading-overlay.hidden { display: none; }
+
+.spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid #30363d;
+    border-top-color: #58a6ff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+.loading-text {
+    margin-top: 12px;
+    font-size: 0.85rem;
+    color: #8b949e;
+}
+
+.no-rec {
+    color: #6e7681;
+    font-style: italic;
+}

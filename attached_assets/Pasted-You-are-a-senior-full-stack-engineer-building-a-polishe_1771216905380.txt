@@ -1,0 +1,125 @@
+You are a senior full-stack engineer building a polished Blackjack “Copilot” web app on Replit.
+
+CONTEXT
+A working Python engine already exists (from a previous step) that supports:
+- 6-deck shoe
+- Dealer hits soft 17 (H17)
+- Actions: HIT / STAND / DOUBLE / SPLIT with legality rules
+- Hi-Lo count (running + true count)
+- Monte Carlo odds + EV per action
+- Ability to progress a hand, including split hands and double downs
+
+YOUR JOB NOW
+Build a clean, modern web UI (not text-only) that:
+- Visually shows playing cards (dealer + player hands, including split hands)
+- Lets the user click action buttons (Hit/Stand/Double/Split) when legal
+- Shows recommendation + “why” + odds/EV in a readable panel
+- Shows running count, decks remaining, true count
+- Is responsive and looks “pretty” (card styling, spacing, consistent typography)
+
+TECH STACK (Replit-friendly)
+- Backend: Python + FastAPI (preferred) or Flask (acceptable)
+- Frontend: HTML/CSS/Vanilla JS (no build step). Use a lightweight CSS framework via CDN:
+  - Tailwind via CDN OR Bootstrap 5 via CDN (choose one)
+- Use fetch() to call backend APIs
+- Store game state server-side in a session-like object keyed by a simple game_id
+
+IMPORTANT UI REQUIREMENTS
+1) Card display:
+   - Render cards as rounded rectangles with rank + suit symbol (♠ ♥ ♦ ♣)
+   - Use red text for hearts/diamonds; black for spades/clubs
+   - Show dealer up-card face up and optionally show a facedown card until reveal
+   - Show multiple player hands if split (Hand 1, Hand 2, etc.) with a highlight on the “active” hand
+2) Action buttons:
+   - HIT, STAND, DOUBLE, SPLIT
+   - Disabled state when illegal; tooltip or small note explaining why disabled
+3) Recommendation panel:
+   - “Recommended: HIT” (large)
+   - Short explanation with real numbers:
+     - EVs for legal actions
+     - Bust risk if hit
+     - Dealer bust chance if stand
+   - Show win/push/lose probabilities for each legal action in a small table
+4) Counting panel:
+   - Running Count, True Count, Decks Remaining
+   - Keep this visible during play
+5) Controls:
+   - New Hand (keep shoe)
+   - Reset Shoe
+   - Reveal dealer hole card (or auto-reveal at stand/double completion)
+   - Optional toggle: “Manual card entry” vs “Auto deal”
+     - Default to Auto deal for a smooth demo
+6) Polished look:
+   - Clean layout with cards on top, controls/buttons in middle, analytics panels on side or below
+   - Use subtle shadows, spacing, and consistent fonts
+
+GAME FLOW (Web)
+- On load: create a new game automatically (6 decks)
+- Deal a new hand:
+  - Dealer gets two cards (second is hidden until reveal)
+  - Player gets two cards
+  - Update count with all visible cards; hidden dealer card should NOT affect count until revealed
+- User chooses actions via buttons:
+  - HIT deals a player card
+  - STAND ends current hand’s play
+  - DOUBLE deals exactly one card then stands
+  - SPLIT splits when possible and deals one card to each new hand; then user plays each hand in order
+- When all player hands finish, dealer reveals hole card and plays H17; then settle each hand
+- After settlement, show results per hand (Win/Lose/Push) and updated bankroll-style summary (optional, can be simple)
+
+BACKEND API DESIGN (Implement these endpoints)
+- POST /api/new_game
+  - returns {game_id, state}
+- POST /api/new_hand  (keep shoe)
+  - returns updated state
+- POST /api/reset_shoe
+  - returns updated state
+- POST /api/action
+  - body: {game_id, action} where action in ["hit","stand","double","split"]
+  - returns updated state after applying the action
+- GET /api/state?game_id=...
+  - returns current state
+
+STATE SHAPE (Return JSON the frontend can render)
+Return a single “state” JSON object that includes:
+- dealer: {cards:[{rank,suit,hidden:boolean}], total_visible, total_final_optional}
+- player_hands: [
+    {hand_id, cards:[{rank,suit}], total, soft:boolean, status:"active|stood|bust|done", can_hit, can_stand, can_double, can_split}
+  ]
+- active_hand_index
+- actions_legal: {hit:boolean, stand:boolean, double:boolean, split:boolean, reasons:{double:"...", split:"..."}}
+- recommendation: {action:"hit", evs:{hit:..., stand:..., double:..., split:...}, probs:{hit:{win,push,lose}, ...}, bust_risk_hit, dealer_bust_if_stand}
+- count: {running, true, decks_remaining}
+- outcome: optional summary after settlement (per hand + dealer)
+- config: {decks:6, dealer_h17:true}
+
+INTEGRATION REQUIREMENT
+- Do NOT re-implement blackjack rules in JavaScript.
+- The frontend only renders the state and sends actions.
+- If the existing engine is in main.py, refactor it into a module (e.g., engine.py) that FastAPI imports.
+- Keep Monte Carlo sims configurable and reduce sims for responsiveness in the web UI if needed.
+
+FILE STRUCTURE (Create these files)
+- main.py (FastAPI/Flask server)
+- engine.py (game logic + odds engine)
+- templates/index.html (if using Flask) OR a static index.html served by FastAPI
+- static/styles.css (if not using Tailwind/Bootstrap fully)
+- static/app.js (frontend logic)
+
+FRONTEND LOGIC (app.js)
+- On load: call /api/new_game then /api/new_hand
+- Render:
+  - dealer cards row
+  - player hands (multiple sections if split)
+  - action buttons with enabled/disabled states
+  - recommendation + odds table
+  - count panel
+- On button click: POST /api/action then re-render
+
+QUALITY BAR
+- The app should look like a real small product demo: clear, modern, intuitive.
+- No console-only interaction. No ugly raw JSON on screen.
+- Add helpful microcopy: “Dealer hits soft 17 (H17). Shoe: 6 decks.”
+
+DELIVERABLE
+Provide the complete working code for all files and ensure it runs on Replit with one click (main.py as entry). Include short instructions at the top of main.py on how to run.

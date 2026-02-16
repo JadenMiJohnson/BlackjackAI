@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Blackjack Copilot</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+    <header>
+        <div class="header-inner">
+            <h1>Blackjack Copilot</h1>
+            <span class="subtitle">6-Deck Shoe &middot; Dealer Hits Soft 17</span>
+        </div>
+    </header>
+
+    <main>
+        <div class="table-area">
+            <div class="dealer-section">
+                <div class="section-label">Dealer</div>
+                <div id="dealer-cards" class="cards-row"></div>
+                <div id="dealer-total" class="hand-total"></div>
+            </div>
+
+            <div class="divider"></div>
+
+            <div class="player-section">
+                <div class="section-label">Your Hand</div>
+                <div id="player-hands"></div>
+            </div>
+
+            <div id="outcome-banner" class="outcome-banner hidden"></div>
+        </div>
+
+        <div class="controls-area">
+            <div class="action-buttons">
+                <button id="btn-hit" onclick="doAction('hit')">Hit</button>
+                <button id="btn-stand" onclick="doAction('stand')">Stand</button>
+                <button id="btn-double" onclick="doAction('double')">Double</button>
+                <button id="btn-split" onclick="doAction('split')">Split</button>
+            </div>
+            <div class="game-buttons">
+                <button class="secondary" onclick="newHand()">New Hand</button>
+                <button class="secondary" onclick="resetShoe()">Reset Shoe</button>
+            </div>
+        </div>
+
+        <div class="panels-area">
+            <div class="panel recommendation-panel">
+                <div class="panel-title">Recommendation</div>
+                <div id="rec-action" class="rec-action"></div>
+                <div id="rec-explanation" class="rec-explanation"></div>
+                <div id="rec-details" class="rec-details"></div>
+            </div>
+
+            <div class="panel odds-panel">
+                <div class="panel-title">Action Analysis</div>
+                <table id="odds-table">
+                    <thead>
+                        <tr>
+                            <th>Action</th>
+                            <th>Win</th>
+                            <th>Push</th>
+                            <th>Lose</th>
+                            <th>EV</th>
+                        </tr>
+                    </thead>
+                    <tbody id="odds-body"></tbody>
+                </table>
+            </div>
+
+            <div class="panel count-panel">
+                <div class="panel-title">Card Counting</div>
+                <div class="count-grid">
+                    <div class="count-item">
+                        <span class="count-label">Running Count</span>
+                        <span id="running-count" class="count-value">0</span>
+                    </div>
+                    <div class="count-item">
+                        <span class="count-label">True Count</span>
+                        <span id="true-count" class="count-value">0.0</span>
+                    </div>
+                    <div class="count-item">
+                        <span class="count-label">Decks Left</span>
+                        <span id="decks-remaining" class="count-value">6.00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="loading-overlay" class="loading-overlay hidden">
+        <div class="spinner"></div>
+        <div class="loading-text">Analyzing...</div>
+    </div>
+
+    <script src="/static/app.js"></script>
+</body>
+</html>
