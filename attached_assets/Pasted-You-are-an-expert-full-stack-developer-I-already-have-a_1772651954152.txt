@@ -1,0 +1,136 @@
+You are an expert full-stack developer. I already have a working Blackjack game in this Replit project. I want you to add (not replace) the following features while keeping all existing game logic and files intact.
+
+Goal
+
+Add:
+
+A Login system (Register, Login, Logout)
+
+Two informational home pages:
+
+Page 1: Blackjack Rules
+
+Page 2: Hi-Lo Card Counting Explanation
+
+A simple Dashboard page for logged-in users with buttons/links to:
+
+Play Game
+
+Blackjack Rules
+
+Hi-Lo Info
+
+Logout
+
+Constraints
+
+Do NOT delete or rewrite my existing blackjack game logic.
+
+Integrate with my current project structure and routes/pages.
+
+If my project is a web app, use the same framework already in the repo (Flask, Express, etc.). If unsure, inspect files and choose accordingly.
+
+Add only the minimal new files needed (templates/pages + auth storage).
+
+Make styling simple and consistent with what already exists.
+
+Required Implementation Details
+Authentication
+
+Add Register (username + password + confirm password)
+
+Add Login (username + password)
+
+Add Logout
+
+Persist users using a local database:
+
+If Python/Flask: use SQLite with password hashing (werkzeug.security)
+
+If Node/Express: use SQLite or a lightweight JSON file + bcrypt
+
+Add session management:
+
+Flask: session cookie
+
+Express: express-session
+
+Add a login_required / middleware protection for the Play Game route so only logged-in users can access the game page (or whatever route currently launches the blackjack game). If my blackjack is CLI-only, then instead create a simple “logged-in menu page” that links to “Run Game” instructions.
+
+Pages
+
+Create two pages with clean headings and bullet points:
+
+/home/blackjack-rules (or similar): explain:
+
+objective (beat dealer without busting)
+
+card values
+
+hit/stand/double/split (mention split if supported; if not supported, say “not implemented in this version”)
+
+dealer rules (hits until 17, etc.)
+
+blackjack payout mention at a high level
+
+/home/hi-lo (or similar): explain:
+
+what card counting is
+
+Hi-Lo values (+1, 0, -1 mapping)
+
+running count and true count (basic explanation)
+
+what “advantage” means and bankroll/variance warning
+
+make it educational (no instructions for illegal activity)
+
+Navigation
+
+Add a consistent navbar on all new pages:
+
+Rules
+
+Hi-Lo
+
+Dashboard (only if logged in)
+
+Login/Register (if logged out)
+
+Logout (if logged in)
+
+Integration Step
+
+First, scan the repo to determine:
+
+framework/language
+
+how the blackjack game is launched (route or CLI)
+
+Then implement auth + pages in a way that connects cleanly:
+
+If there is a main route/page already, add links to the new pages.
+
+If there is an existing “play” route, protect it.
+
+Provide clear instructions in the README (or a short section in the console output) explaining:
+
+how to run
+
+where the new routes/pages are
+
+default behavior when not logged in
+
+Deliverables
+
+Updated/added code files
+
+Database or storage setup (auto-create on first run)
+
+Working Register/Login/Logout flow
+
+Two informational pages accessible from navigation
+
+Game route protected (or best equivalent if CLI-only)
+
+Proceed to implement now. After changes, briefly list what files you added/modified and what routes/pages exist.

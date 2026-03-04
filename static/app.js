@@ -37,12 +37,12 @@ function hideLoading() {
 async function initGame() {
     gameId = getGameIdFromUrl();
     if (!gameId) {
-        window.location.href = '/';
+        window.location.href = '/play';
         return;
     }
     const state = await api('/api/state?game_id=' + encodeURIComponent(gameId));
     if (state.error) {
-        window.location.href = '/';
+        window.location.href = '/play';
         return;
     }
     currentState = state;
