@@ -1,4 +1,4 @@
-# Blackjack Copilot
+# Agent B21
 
 ## Overview
 Web-based blackjack advisor with two modes: Regular (interactive play with AI guidance) and Auto Play (AI plays autonomously). Uses Monte Carlo simulation on a finite 6-deck shoe to provide EV-based recommendations, card counting, and dynamic bet sizing. Includes user authentication, informational pages, and a dashboard.
@@ -78,7 +78,7 @@ Web-based blackjack advisor with two modes: Regular (interactive play with AI gu
 - Capped at max_units setting
 
 ## How to Run
-- Workflow "Blackjack Copilot" runs `python main.py`
+- Workflow "Agent B21" runs `python main.py`
 - Web app at http://0.0.0.0:5000
 - Visit `/` to get started (redirects to login or dashboard)
 - Register an account, then access the game via Dashboard > Play Blackjack

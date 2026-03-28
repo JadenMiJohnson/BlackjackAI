@@ -1,5 +1,5 @@
 """
-Blackjack Copilot — Web UI
+AgentB21 — Web UI
 Run: python main.py
 """
 

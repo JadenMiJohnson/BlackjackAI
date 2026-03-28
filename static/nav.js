@@ -27,7 +27,7 @@ async function buildNav() {
 
     navbar.innerHTML =
         '<div class="navbar-inner">' +
-        '<a href="/" class="navbar-brand">Blackjack Copilot</a>' +
+        '<a href="/" class="navbar-brand">Agent B21</a>' +
         '<div class="navbar-links">' + links + '</div>' +
         '</div>';
 }

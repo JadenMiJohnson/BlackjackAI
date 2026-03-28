@@ -1,5 +1,5 @@
 """
-Blackjack Copilot Engine — Game logic, Monte Carlo simulation, and state management.
+AgentB21 Engine — Game logic, Monte Carlo simulation, and state management.
 
 Rules: 6-deck shoe, dealer hits soft 17 (H17), split up to 3 times,
 split aces get one card only, double after split allowed, no resplit aces.
