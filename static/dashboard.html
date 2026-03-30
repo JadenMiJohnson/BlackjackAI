@@ -9,17 +9,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 </head>
 <body class="home-body">
-    <nav class="navbar">
-        <div class="navbar-inner">
-            <a href="/dashboard" class="navbar-brand">Agent B21</a>
-            <div class="navbar-links">
-                <a href="/rules">Rules</a>
-                <a href="/hilo">Hi-Lo</a>
-                <a href="/dashboard" class="nav-active">Dashboard</a>
-                <a href="#" onclick="doLogout()" class="nav-logout">Logout</a>
-            </div>
-        </div>
-    </nav>
+    <nav class="navbar" id="navbar"></nav>
 
     <div class="home-container">
         <div class="home-hero">
@@ -54,6 +44,13 @@
                 <p>Understand the Hi-Lo card counting system, running count, true count, and how advantage play works.</p>
                 <div class="mode-badge">Learn</div>
             </a>
+
+            <a href="/how-to-play" class="dash-card">
+                <div class="dash-icon">&#127909;</div>
+                <h2>How to Play Blackjack</h2>
+                <p>Get a beginner-friendly walkthrough of blackjack basics with a quick video tutorial and strategy-focused tips.</p>
+                <div class="mode-badge">Learn</div>
+            </a>
         </div>
 
         <div class="home-footer">
@@ -72,12 +69,8 @@
             }
         }
 
-        async function doLogout() {
-            await fetch('/api/auth/logout', { method: 'POST' });
-            window.location.href = '/login';
-        }
-
         loadUser();
     </script>
+    <script src="/static/nav.js"></script>
 </body>
 </html>

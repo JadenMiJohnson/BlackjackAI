@@ -14,8 +14,10 @@ async function buildNav() {
     const path = window.location.pathname;
 
     let links = '';
+    links += navLink('/play', 'Play Blackjack', path);
     links += navLink('/rules', 'Rules', path);
     links += navLink('/hilo', 'Hi-Lo', path);
+    links += navLink('/how-to-play', 'How to Play', path);
 
     if (loggedIn) {
         links += navLink('/dashboard', 'Dashboard', path);

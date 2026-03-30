@@ -88,6 +88,11 @@ async def hilo_page():
     return FileResponse("static/hilo.html", headers={"Cache-Control": "no-cache"})
 
 
+@app.get("/how-to-play")
+async def how_to_play_page():
+    return FileResponse("static/how_to_play.html", headers={"Cache-Control": "no-cache"})
+
+
 @app.post("/api/auth/register")
 async def api_register(request: Request):
     body = await request.json()
@@ -266,4 +271,4 @@ async def get_state(request: Request, game_id: str):
 
 
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=5000)
+    uvicorn.run(app, host="127.0.0.1", port=5000)

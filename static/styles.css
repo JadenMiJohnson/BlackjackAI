@@ -1210,3 +1210,64 @@ main {
     font-size: 0.78rem;
     color: #8b949e;
 }
+
+/* ===== HOW TO PLAY PAGE ===== */
+.video-wrapper {
+    position: relative;
+    padding-bottom: 56.25%; /* 16:9 aspect ratio */
+    height: 0;
+    overflow: hidden;
+    border-radius: 10px;
+    border: 1px solid #30363d;
+    background: #0d1117;
+    margin: 12px 0;
+}
+
+.video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: 0;
+}
+
+.back-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 22px;
+    background: #21262d;
+    border: 1px solid #30363d;
+    border-radius: 10px;
+    color: #c9d1d9;
+    font-size: 0.88rem;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    transition: all 0.2s;
+    margin-bottom: 28px;
+}
+
+.back-btn:hover {
+    background: #2d333b;
+    border-color: #58a6ff;
+    color: #58a6ff;
+}
+
+.how-to-play-link {
+    display: block;
+    text-align: center;
+    margin-bottom: 20px;
+    font-size: 0.85rem;
+    color: #58a6ff;
+    font-weight: 500;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.how-to-play-link:hover {
+    color: #79c0ff;
+    text-decoration: underline;
+}

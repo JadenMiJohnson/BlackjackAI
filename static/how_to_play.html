@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>How to Play Blackjack - Agent B21</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body class="home-body">
+    <nav class="navbar" id="navbar"></nav>
+
+    <div class="info-container">
+        <a href="/play" class="back-btn">&#8592; Back to Home</a>
+
+        <div class="info-header">
+            <div class="hero-card-deco">
+                <span class="deco-suit s1">&spades;</span>
+                <span class="deco-suit s2">&hearts;</span>
+                <span class="deco-suit s3">&diams;</span>
+                <span class="deco-suit s4">&clubs;</span>
+            </div>
+            <h1>How to Play Blackjack</h1>
+            <p class="info-subtitle">Learn the fundamentals and start playing with confidence</p>
+        </div>
+
+        <!-- Video Tutorial -->
+        <div class="info-section">
+            <h2>&#127909; Video Tutorial</h2>
+            <p>Watch this tutorial to get a quick visual overview of how blackjack works before diving into the written rules below.</p>
+            <div class="video-wrapper">
+                <iframe
+                    src="https://www.youtube.com/embed/VIDEO_ID_HERE"
+                    title="How to Play Blackjack"
+                    allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                    allowfullscreen>
+                </iframe>
+            </div>
+            <p style="font-size:0.78rem; color:#484f58; margin-top:8px;">Replace <code style="background:#21262d;padding:1px 5px;border-radius:4px;color:#8b949e;">VIDEO_ID_HERE</code> in the source with a real YouTube video ID to activate this embed.</p>
+        </div>
+
+        <!-- Objective -->
+        <div class="info-section">
+            <h2>&#127919; Objective</h2>
+            <p>Beat the dealer by building a hand whose total is closer to <strong>21</strong> than the dealer's — without going over (busting). You are not competing against other players, only against the dealer.</p>
+            <p>A <strong>Blackjack</strong> (an Ace + any 10-value card on the initial deal) beats all other hands and typically pays <strong>3:2</strong>.</p>
+        </div>
+
+        <!-- Card Values -->
+        <div class="info-section">
+            <h2>&#127183; Card Values</h2>
+            <div class="action-grid">
+                <div class="action-item">
+                    <h3>2 &ndash; 10</h3>
+                    <p>Worth their face value. A 7 is worth 7, a 3 is worth 3, and so on.</p>
+                </div>
+                <div class="action-item">
+                    <h3>J, Q, K</h3>
+                    <p>Face cards are each worth <strong>10</strong>, regardless of suit.</p>
+                </div>
+                <div class="action-item">
+                    <h3>Ace</h3>
+                    <p>Worth <strong>1 or 11</strong> — whichever benefits your hand more. An Ace counted as 11 makes the hand "soft".</p>
+                </div>
+                <div class="action-item">
+                    <h3>Suits</h3>
+                    <p>Suits (&spades; &hearts; &diams; &clubs;) have <strong>no effect</strong> on hand value in standard blackjack.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- How a Hand is Played -->
+        <div class="info-section">
+            <h2>&#9654; How a Hand is Played</h2>
+            <ol>
+                <li><strong>Place your bet</strong> before any cards are dealt.</li>
+                <li>You and the dealer each receive <strong>two cards</strong>. Both of your cards are face up; the dealer has one face up and one face down (the <em>hole card</em>).</li>
+                <li>You decide how to play your hand using the available actions.</li>
+                <li>Once you finish, the dealer flips their hole card and plays by <strong>fixed rules</strong> — no choice involved.</li>
+                <li>Hands are compared and bets are settled.</li>
+            </ol>
+        </div>
+
+        <!-- Player Actions -->
+        <div class="info-section">
+            <h2>&#9878; Player Actions</h2>
+            <div class="action-grid">
+                <div class="action-item">
+                    <h3>Hit</h3>
+                    <p>Take another card from the deck. You can hit as many times as you like, but if your total exceeds 21 you <strong>bust</strong> and lose the bet immediately.</p>
+                </div>
+                <div class="action-item">
+                    <h3>Stand</h3>
+                    <p>Keep your current hand and take no more cards. Play passes to the dealer.</p>
+                </div>
+                <div class="action-item">
+                    <h3>Double Down</h3>
+                    <p>Double your bet and receive <strong>exactly one more card</strong>. A powerful move when the odds are in your favor.</p>
+                </div>
+                <div class="action-item">
+                    <h3>Split</h3>
+                    <p>If your two starting cards share the same rank, split them into two separate hands, each with its own bet. Split Aces receive only one additional card each.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dealer Rules -->
+        <div class="info-section">
+            <h2>&#127381; Dealer Rules</h2>
+            <ul>
+                <li>The dealer <strong>must hit</strong> on any total of <strong>16 or below</strong>.</li>
+                <li>The dealer <strong>must hit</strong> on a <strong>soft 17</strong> (a 17 containing an Ace counted as 11). This is the <em>H17 rule</em> used by Agent B21.</li>
+                <li>The dealer <strong>must stand</strong> on hard 17 or higher.</li>
+                <li>The dealer has <strong>no choice</strong> — these rules are fixed and automatic.</li>
+            </ul>
+        </div>
+
+        <!-- Payouts -->
+        <div class="info-section">
+            <h2>&#128176; Payouts</h2>
+            <ul>
+                <li><strong>Blackjack</strong> &mdash; Pays <strong>3:2</strong> (win 1.5× your bet)</li>
+                <li><strong>Regular win</strong> &mdash; Pays <strong>1:1</strong> (win 1× your bet)</li>
+                <li><strong>Push (tie)</strong> &mdash; Your bet is returned, no win or loss</li>
+                <li><strong>Bust</strong> &mdash; You immediately lose your bet when exceeding 21</li>
+                <li><strong>Dealer Blackjack</strong> &mdash; All player hands lose (unless the player also has Blackjack — a push)</li>
+            </ul>
+        </div>
+
+        <!-- Tips to Get Started -->
+        <div class="info-section">
+            <h2>&#128161; Tips to Get Started</h2>
+            <ul>
+                <li>Always assume the dealer's hole card is a <strong>10-value card</strong> — it's the most common value in the deck.</li>
+                <li><strong>Never bust when the dealer shows a weak card</strong> (2–6). Let the dealer draw into a bust instead.</li>
+                <li>Always split <strong>Aces</strong> and <strong>8s</strong>. Never split 10s or 5s.</li>
+                <li>Double down on <strong>11</strong> against most dealer upcards.</li>
+                <li>Use Agent B21's <strong>real-time AI recommendations</strong> to learn optimal strategy as you play.</li>
+            </ul>
+        </div>
+
+        <a href="/play" class="back-btn" style="margin-top:8px; margin-bottom:0;">&#8592; Back to Home</a>
+    </div>
+
+    <script src="/static/nav.js"></script>
+</body>
+</html>
